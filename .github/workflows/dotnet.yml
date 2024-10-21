@@ -20,10 +20,14 @@ jobs:
           dotnet-version: '8.0.x'
           
       - name: Restore dependencies
-        run: dotnet restore ./lab1.fsproj
+        run: |
+          dotnet restore ./lab1.fsproj
+          dotnet restore Lab2.Tests/Lab2.Tests.fsproj
 
       - name: Build project
-        run: dotnet build ./
+        run: |
+          dotnet build ./
+          dotnet build ./Lab2.Tests
 
       - name: Settings for linter
         run: echo "DOTNET_ROLL_FORWARD=latestMajor" >> $GITHUB_ENV
@@ -41,7 +45,4 @@ jobs:
         run: dotnet run --project ./
         
       - name: Tests
-        run: |
-            dotnet restore Lab2.Tests/Lab2.Tests.fsproj
-            dotnet build ./Lab2.Tests
-            dotnet test --logger "console;verbosity=detailed" ./Lab2.Tests
+        run: dotnet test --logger "console;verbosity=detailed" ./Lab2.Tests
