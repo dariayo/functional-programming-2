@@ -3,6 +3,7 @@ module OpenAddressHashMapPropertyTests
 open NUnit.Framework
 open FsCheck
 open OpenAddressHashMap
+open System.IO
 
 [<TestFixture>]
 type OpenAddressHashMapPropertyTests() =
@@ -16,6 +17,7 @@ type OpenAddressHashMapPropertyTests() =
         let allKeys2 = [for i in 0 .. dict2.Capacity - 1 do yield dict2.TryGetValue(i)]
         
         allKeys1 = allKeys2
+
     [<Test>]
     member this.``Monoid - Combine with empty returns original dict``() =
         let prop (numbers: int list) =
@@ -63,3 +65,8 @@ type OpenAddressHashMapPropertyTests() =
             equalDicts combined1 combined2
 
         Check.QuickThrowOnFailure prop
+
+    [<OneTimeSetUp>]
+    member this.SetUp() =
+        let sw = new StringWriter()
+        System.Console.SetOut(sw)
