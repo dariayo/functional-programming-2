@@ -13,8 +13,8 @@ type OpenAddressHashMapPropertyTests() =
         | head :: tail -> fillDict (dict.Add(head, head)) tail
 
     let equalDicts (dict1: OpenAddressHashMap<int, int>) (dict2: OpenAddressHashMap<int, int>) =
-        let allKeys1 = [for i in 0 .. dict1.Capacity - 1 do yield dict1.TryGetValue(i)]
-        let allKeys2 = [for i in 0 .. dict2.Capacity - 1 do yield dict2.TryGetValue(i)]
+        let allKeys1 = [for i in 0 .. dict1.Capacity - 1 do yield dict1.GetValue(i)]
+        let allKeys2 = [for i in 0 .. dict2.Capacity - 1 do yield dict2.GetValue(i)]
         
         allKeys1 = allKeys2
 
@@ -25,8 +25,8 @@ type OpenAddressHashMapPropertyTests() =
             let filledDict = fillDict dict numbers
             let emptyDict = OpenAddressHashMap<int, int>.Empty()
             
-            let combined1 = filledDict.Merge(emptyDict)
-            let combined2 = emptyDict.Merge(filledDict)
+            let combined1 = filledDict.Merge(emptyDict)  
+            let combined2 = emptyDict.Merge(filledDict)  
 
             (filledDict.Size = combined1.Size) &&
             (filledDict.Capacity = combined1.Capacity) &&
@@ -45,7 +45,7 @@ type OpenAddressHashMapPropertyTests() =
 
             List.forall (fun value ->
                 currentDict <- currentDict.Add(value, value)
-                currentDict.TryGetValue(value) = Some value
+                currentDict.GetValue(value) = Some value
             ) values
 
         Check.QuickThrowOnFailure prop

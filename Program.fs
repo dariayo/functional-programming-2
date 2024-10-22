@@ -9,29 +9,29 @@ let main argv =
     let hashMap = hashMap.Add(2, "two")
     let hashMap = hashMap.Add(3, "three")
 
-    match hashMap.TryGetValue(1) with
+    match hashMap.GetValue(1) with
     | Some value -> printfn "Key 1: %s" value
     | None -> printfn "Key 1 not found"
 
-    match hashMap.TryGetValue(4) with
+    match hashMap.GetValue(4) with
     | Some value -> printfn "Key 4: %s" value
     | None -> printfn "Key 4 not found"
 
-    let hashMap = hashMap.Remove(2)
+    let hashMap = hashMap.Remove(3)
 
-    match hashMap.TryGetValue(2) with
+    match hashMap.GetValue(2) with
     | Some value -> printfn "Key 2: %s" value
     | None -> printfn "Key 2 not found (as expected after removal)"
 
     let otherDict = OpenAddressHashMap<int, string>(5)
                      .Add(2, "two")
                      .Add(4, "four")
-    
+
     let mergedDict = hashMap.Merge(otherDict)
 
     printfn "Merged dictionary contents:"
     for k in [1; 2; 3; 4] do
-        match mergedDict.TryGetValue(k) with
+        match mergedDict.GetValue(k) with
         | Some value -> printfn "Key %d: %s" k value
         | None -> printfn "Key %d not found" k
 
@@ -39,7 +39,7 @@ let main argv =
 
     printfn "Filtered dictionary (only even keys):"
     for k in [1; 2; 3; 4] do
-        match filteredDict.TryGetValue(k) with
+        match filteredDict.GetValue(k) with
         | Some value -> printfn "Key %d: %s" k value
         | None -> printfn "Key %d not found" k
 
@@ -47,7 +47,7 @@ let main argv =
 
     printfn "Mapped dictionary (values in uppercase):"
     for k in [1; 2; 3; 4] do
-        match mappedDict.TryGetValue(k) with
+        match mappedDict.GetValue(k) with
         | Some value -> printfn "Key %d: %s" k value
         | None -> printfn "Key %d not found" k
 
@@ -57,4 +57,4 @@ let main argv =
     let concatValues = mergedDict.FoldR(fun (k, v) acc -> v + " " + acc) ""
     printfn "Concatenated values in merged dictionary: %s" (concatValues.Trim())
 
-    0 
+    0

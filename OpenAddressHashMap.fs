@@ -3,19 +3,20 @@ module OpenAddressHashMap
 type Dict<'Key, 'Value when 'Key: comparison> =
     abstract member Add: 'Key * 'Value -> Dict<'Key, 'Value>
     abstract member Remove: 'Key -> Dict<'Key, 'Value>
-    abstract member TryGetValue: 'Key -> 'Value option
+    abstract member GetValue: 'Key -> 'Value option
     abstract member Filter: ('Key * 'Value -> bool) -> Dict<'Key, 'Value>
     abstract member Map: ('Key * 'Value -> 'Key * 'Value) -> Dict<'Key, 'Value>
     abstract member FoldL: ('State -> 'Key * 'Value -> 'State) -> 'State -> 'State
     abstract member FoldR: ('Key * 'Value -> 'State -> 'State) -> 'State -> 'State
-    abstract member Merge: Dict<'Key, 'Value> -> Dict<'Key, 'Value> 
-
+    abstract member Merge: Dict<'Key, 'Value> -> Dict<'Key, 'Value>
+    abstract member MergeStringValues: Dict<'Key, string> -> Dict<'Key, string>
+    
 type OpenAddressHashMap<'Key, 'Value when 'Key: comparison>(capacity: int) =
     let mutable table =
         if capacity > 0 then
             Array.create capacity (None: ('Key * 'Value) option)
         else
-            [||] 
+            [||]
 
     let mutable size = 0
 
@@ -57,7 +58,7 @@ type OpenAddressHashMap<'Key, 'Value when 'Key: comparison>(capacity: int) =
             | None -> this
         | None -> this
 
-    member this.TryGetValue(key) =
+    member this.GetValue(key) =
         match findSlot key (hash key) 0 with
         | Some index ->
             match table.[index] with
@@ -115,7 +116,11 @@ type OpenAddressHashMap<'Key, 'Value when 'Key: comparison>(capacity: int) =
 
     member this.Merge(other: OpenAddressHashMap<'Key, 'Value>) =
         let resultDict = OpenAddressHashMap<'Key, 'Value>(max capacity other.Capacity)
-        
+        let mergeFunc v1 v2 =
+            match box v1, box v2 with
+            | (:? string as s1), (:? string as s2) -> unbox (s1 + s2)  
+            | (:? int as i1), (:? int as i2) -> unbox (i1 + i2)        
+            | _ -> v1 
         Array.iter
             (function
             | Some (k, v) -> resultDict.Add(k, v) |> ignore
@@ -124,10 +129,15 @@ type OpenAddressHashMap<'Key, 'Value when 'Key: comparison>(capacity: int) =
 
         Array.iter
             (function
-            | Some (k, v) -> resultDict.Add(k, v) |> ignore
+            | Some (k, v) ->
+                match resultDict.GetValue(k) with
+                | Some existingValue ->
+                    let newValue = mergeFunc existingValue v
+                    resultDict.Add(k, newValue) |> ignore
+                | None ->
+                    resultDict.Add(k, v) |> ignore
             | None -> ())
             other.Table
-
         resultDict
 
     static member Empty() = OpenAddressHashMap<'Key, 'Value>(0)
