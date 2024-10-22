@@ -17,14 +17,14 @@ let main argv =
     | Some value -> printfn "Key 4: %s" value
     | None -> printfn "Key 4 not found"
 
-    let hashMap = hashMap.Remove(3)
+    let hashMap = hashMap.Remove(2)
 
     match hashMap.GetValue(2) with
     | Some value -> printfn "Key 2: %s" value
     | None -> printfn "Key 2 not found (as expected after removal)"
 
     let otherDict = OpenAddressHashMap<int, string>(5)
-                     .Add(2, "two")
+                     .Add(3, "three")
                      .Add(4, "four")
 
     let mergedDict = hashMap.Merge(otherDict)
@@ -33,7 +33,7 @@ let main argv =
     for k in [1; 2; 3; 4] do
         match mergedDict.GetValue(k) with
         | Some value -> printfn "Key %d: %s" k value
-        | None -> printfn "Key %d not found" k
+        | None -> ()
 
     let filteredDict = mergedDict.Filter(fun (k, _) -> k % 2 = 0)
 
@@ -41,7 +41,7 @@ let main argv =
     for k in [1; 2; 3; 4] do
         match filteredDict.GetValue(k) with
         | Some value -> printfn "Key %d: %s" k value
-        | None -> printfn "Key %d not found" k
+        | None -> ()
 
     let mappedDict = mergedDict.Map(fun (k, v) -> (k, v.ToUpper()))
 
@@ -49,12 +49,12 @@ let main argv =
     for k in [1; 2; 3; 4] do
         match mappedDict.GetValue(k) with
         | Some value -> printfn "Key %d: %s" k value
-        | None -> printfn "Key %d not found" k
+        | None -> ()
 
     let sumKeys = mergedDict.FoldL(fun acc (k, _) -> acc + k) 0
     printfn "Sum of keys in merged dictionary: %d" sumKeys
 
-    let concatValues = mergedDict.FoldR(fun (k, v) acc -> v + " " + acc) ""
+    let concatValues = mergedDict.FoldR(fun (k, v) acc -> acc + " " + v) ""
     printfn "Concatenated values in merged dictionary: %s" (concatValues.Trim())
 
     0

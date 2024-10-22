@@ -188,13 +188,16 @@ FsCheck - property-based тесты
 | Merge with empty dictionary should return original dictionary               | Passed    | < 1 ms           |
 | Remove should delete element and GetValue should return None               | Passed    | < 1 ms           |
 | Check insert                                                               | Passed    | 55 ms            |
-| Combine is associative                                                      | Passed    | 17 ms            |
-| Monoid - Combine with empty returns original dict                          | Passed    | 5 ms             |
+| Check insert string                                                        | Passed    | 27 ms            |
+| Merge is associative                                                      | Passed    | 17 ms            |
+| Monoid - Merge with empty returns original dict                          | Passed    | 5 ms             |
 
 ### Итоговый отчет
 
-**Общее количество тестов:** 11  
-**Успешно пройдено:** 11  
-**Общее время выполнения:** 0.4443 секунд  
+**Общее количество тестов:** 12  
+**Успешно пройдено:** 12  
+**Общее время выполнения:** 0.5023 секунд  
 
 ## Выводы
+
+Я узнала, что такое открытая адресация, реализовала один из вариантов открытой адресации - Linear Probing. Было достаточно легко понять, как это сделать. Столкнулась с проблемой, когда переменные могут быть разных типов, поэтому узнала, что такое box и unbox, чтобы обрабатывать разные типы.  

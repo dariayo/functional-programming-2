@@ -33,13 +33,13 @@ type OpenAddressHashMapTests() =
 
         let dict2 =
             OpenAddressHashMap<int, string>(5)
-                .Add(2, "два")
+                .Add(2, "two")
                 .Add(3, "three")
 
         let merged = dict1.Merge(dict2)
 
         Assert.AreEqual(Some "one", merged.GetValue(1))
-        Assert.AreEqual(Some "twoдва", merged.GetValue(2)) 
+        Assert.AreEqual(Some "twotwo", merged.GetValue(2)) 
         Assert.AreEqual(Some "three", merged.GetValue(3))
 
     [<Test>]
@@ -104,5 +104,5 @@ type OpenAddressHashMapTests() =
                 .Add(2, "two")
                 .Add(3, "three")
 
-        let concatValues = dict.FoldR (fun (_, v) acc -> v + " " + acc) ""
-        Assert.AreEqual("one two three", concatValues.Trim())
+        let concatValues = dict.FoldR (fun (_, v) acc -> acc + " " + v) ""
+        Assert.AreEqual("three two one", concatValues.Trim())

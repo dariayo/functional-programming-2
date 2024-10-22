@@ -1,15 +1,5 @@
 module OpenAddressHashMap
 
-type Dict<'Key, 'Value when 'Key: comparison> =
-    abstract member Add: 'Key * 'Value -> Dict<'Key, 'Value>
-    abstract member Remove: 'Key -> Dict<'Key, 'Value>
-    abstract member GetValue: 'Key -> 'Value option
-    abstract member Filter: ('Key * 'Value -> bool) -> Dict<'Key, 'Value>
-    abstract member Map: ('Key * 'Value -> 'Key * 'Value) -> Dict<'Key, 'Value>
-    abstract member FoldL: ('State -> 'Key * 'Value -> 'State) -> 'State -> 'State
-    abstract member FoldR: ('Key * 'Value -> 'State -> 'State) -> 'State -> 'State
-    abstract member Merge: Dict<'Key, 'Value> -> Dict<'Key, 'Value>
-
 type OpenAddressHashMap<'Key, 'Value when 'Key: comparison>(capacity: int) =
     let mutable table =
         if capacity > 0 then

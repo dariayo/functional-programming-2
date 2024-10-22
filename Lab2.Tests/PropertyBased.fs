@@ -19,21 +19,21 @@ type OpenAddressHashMapPropertyTests() =
         allKeys1 = allKeys2
 
     [<Test>]
-    member this.``Monoid - Combine with empty returns original dict``() =
+    member this.``Monoid - Merge with empty returns original dict``() =
         let prop (numbers: int list) =
             let dict = OpenAddressHashMap<int, int>(List.length numbers * 2)
             let filledDict = fillDict dict numbers
             let emptyDict = OpenAddressHashMap<int, int>.Empty()
             
-            let combined1 = filledDict.Merge(emptyDict)  
-            let combined2 = emptyDict.Merge(filledDict)  
+            let merged1 = filledDict.Merge(emptyDict)  
+            let merged2 = emptyDict.Merge(filledDict)  
 
-            (filledDict.Size = combined1.Size) &&
-            (filledDict.Capacity = combined1.Capacity) &&
-            (equalDicts filledDict combined1) &&
-            (filledDict.Size = combined2.Size) &&
-            (filledDict.Capacity = combined2.Capacity) &&
-            (equalDicts filledDict combined2)
+            (filledDict.Size = merged1.Size) &&
+            (filledDict.Capacity = merged1.Capacity) &&
+            (equalDicts filledDict merged1) &&
+            (filledDict.Size = merged2.Size) &&
+            (filledDict.Capacity = merged2.Capacity) &&
+            (equalDicts filledDict merged2)
 
         Check.QuickThrowOnFailure prop
 
@@ -51,7 +51,20 @@ type OpenAddressHashMapPropertyTests() =
         Check.QuickThrowOnFailure prop
 
     [<Test>]
-    member this.``Combine is associative``() =
+    member this.``Check insert string``() =
+        let prop (pairs: (int * string) list) =
+            let dict = OpenAddressHashMap<int, string>(List.length pairs * 2) 
+            let mutable currentDict = dict
+
+            List.forall (fun (key, value) ->
+                currentDict <- currentDict.Add(key, value)
+                currentDict.GetValue(key) = Some value
+            ) pairs
+
+        Check.QuickThrowOnFailure prop
+
+    [<Test>]
+    member this.``Merge is associative``() =
         let prop (values1: int list, values2: int list) =
             let dict1 = OpenAddressHashMap<int, int>((List.length values1 + List.length values2) * 2) 
             let dict2 = OpenAddressHashMap<int, int>((List.length values1 + List.length values2) * 2)
@@ -59,10 +72,10 @@ type OpenAddressHashMapPropertyTests() =
             let filledDict1 = fillDict dict1 values1
             let filledDict2 = fillDict dict2 values2
 
-            let combined1 = filledDict1.Merge(filledDict2)
-            let combined2 = filledDict2.Merge(filledDict1)
+            let merged1 = filledDict1.Merge(filledDict2)
+            let merged2 = filledDict2.Merge(filledDict1)
 
-            equalDicts combined1 combined2
+            equalDicts merged1 merged2
 
         Check.QuickThrowOnFailure prop
 
