@@ -9,8 +9,7 @@ type Dict<'Key, 'Value when 'Key: comparison> =
     abstract member FoldL: ('State -> 'Key * 'Value -> 'State) -> 'State -> 'State
     abstract member FoldR: ('Key * 'Value -> 'State -> 'State) -> 'State -> 'State
     abstract member Merge: Dict<'Key, 'Value> -> Dict<'Key, 'Value>
-    abstract member MergeStringValues: Dict<'Key, string> -> Dict<'Key, string>
-    
+
 type OpenAddressHashMap<'Key, 'Value when 'Key: comparison>(capacity: int) =
     let mutable table =
         if capacity > 0 then
