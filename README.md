@@ -25,51 +25,48 @@
 ### Добавление элемента
 
 ```fsharp
-member this.Add(key, value) =
+member this.Add(key: 'Key, value: 'Value) =
+    if float size / float capacity = 1 then
+        let newCapacity = capacity * 2
+        let newTable = Array.create newCapacity None
+        let newMap = OpenAddressHashMap<'Key, 'Value>(newCapacity, newTable, size)
+        newMap.Add(key, value)
+    else
         match findSlotForInsert key with
         | Some index ->
-            match table.[index] with
-            | Some _ ->
-                table.[index] <- Some(key, value)
-            | None ->
-                table.[index] <- Some(key, value)
-                size <- size + 1
-
-            this
-        | None -> failwith "Dictionary is full"
+            let updatedTable = updateTable table index key value
+            OpenAddressHashMap<'Key, 'Value>(capacity, updatedTable, size + 1)
+        | None -> this
 ```
 
 ### Удаление элемента
 
 ```fsharp
-member this.Remove(key) =
-        match findSlot key (hash key) 0 with
-        | Some index ->
-            match table.[index] with
-            | Some _ ->
-                table.[index] <- None
-                size <- size - 1
-                this
-            | None -> this
-        | None -> this
+member this.Remove(key: 'Key) =
+    match findSlot key (hash key) 0 with
+    | Some index ->
+        let newTable = Array.copy table
+        newTable.[index] <- None
+        OpenAddressHashMap<'Key, 'Value>(capacity, newTable, size - 1)
+    | None -> this
 ```
 
 ### Получение значения по ключу
 
 ```fsharp
-member this.GetValue(key) =
-        match findSlot key (hash key) 0 with
-        | Some index ->
-            match table.[index] with
-            | Some (_, v) -> Some v
-            | None -> None
+member this.GetValue(key: 'Key) =
+    match findSlot key (hash key) 0 with
+    | Some index ->
+        match table.[index] with
+        | Some (_, v) -> Some v
         | None -> None
+    | None -> None
 ```
 
 ### Фильтрация
 
 ```fsharp
-member this.Filter(predicate) =
+member this.Filter(predicate: ('Key * 'Value) -> bool) =
     let filteredItems =
         Array.fold
             (fun acc el ->
@@ -79,7 +76,9 @@ member this.Filter(predicate) =
             []
             table
 
-    let newDict = OpenAddressHashMap<'Key, 'Value>(capacity)
+    let newDict =
+        OpenAddressHashMap<'Key, 'Value>(capacity, Array.create capacity None, 0)
+
     List.fold (fun (dict: OpenAddressHashMap<'Key, 'Value>) (k, v) -> dict.Add(k, v)) newDict filteredItems
 
 ```
@@ -87,24 +86,23 @@ member this.Filter(predicate) =
 ### Отображение
 
 ```fsharp
-member this.Map(mapper) =
-        let newTable =
-            Array.map
-                (fun el ->
-                    match el with
-                    | Some (k, v) -> Some(mapper (k, v))
-                    | None -> None)
-                table
+member this.Map(mapper: ('Key * 'Value) -> ('Key * 'Value)) =
+    let newTable = Array.create capacity None
+    let mutable newSize = 0
 
-        let newDict = OpenAddressHashMap<'Key, 'Value>(capacity)
+    Array.iter
+        (function
+        | Some (k, v) ->
+            let (newK, newV) = mapper (k, v)
+            let index = findSlotForInsert newK
 
-        Array.iter
-            (function
-            | Some (k, v) -> newDict.Add(k, v) |> ignore
-            | None -> ())
-            newTable
+            if index.IsSome then
+                newTable.[index.Value] <- Some(newK, newV)
+                newSize <- newSize + 1
+        | None -> ())
+        table
 
-        newDict
+    OpenAddressHashMap<'Key, 'Value>(capacity, newTable, newSize)
 ```
 
 ### Свертки (левая и правая)
@@ -121,12 +119,12 @@ member this.FoldL (folder: 'State -> ('Key * 'Value) -> 'State) (state: 'State) 
 
 ```fsharp
 member this.FoldR (folder: ('Key * 'Value) -> 'State -> 'State) (state: 'State) =
-        let folderFn el acc =
-            match el with
-            | Some (k, v) -> folder (k, v) acc
-            | None -> acc
+    let folderFn el acc =
+        match el with
+        | Some (k, v) -> folder (k, v) acc
+        | None -> acc
 
-        Array.foldBack folderFn table state
+    Array.foldBack folderFn table state
 ```
 
 ### Структура должна быть моноидом
@@ -134,7 +132,9 @@ member this.FoldR (folder: ('Key * 'Value) -> 'State -> 'State) (state: 'State) 
 Нейтральный элемент
 
 ```fsharp
-static member Empty() = OpenAddressHashMap<'Key, 'Value>(0)
+static member CreateEmpty capacity =
+        OpenAddressHashMap<'Key, 'Value>(capacity, Array.create capacity None, 0)
+
 ```
 
 Бинарная операция (слияние)
@@ -143,30 +143,48 @@ static member Empty() = OpenAddressHashMap<'Key, 'Value>(0)
 
 ```fsharp
 member this.Merge(other: OpenAddressHashMap<'Key, 'Value>) =
-    let resultDict = OpenAddressHashMap<'Key, 'Value>(max capacity other.Capacity)
+    let newCapacity = max this.Capacity other.Capacity
+    let newTable = Array.create newCapacity None
+    let mutable newSize = 0
+
     let mergeFunc v1 v2 =
         match box v1, box v2 with
-        | (:? string as s1), (:? string as s2) -> unbox (s1 + s2)  
-        | (:? int as i1), (:? int as i2) -> unbox (i1 + i2)        
-        | _ -> v1 
-    Array.iter
-        (function
-        | Some (k, v) -> resultDict.Add(k, v) |> ignore
-        | None -> ())
-        table
+        | (:? int as i1), (:? int as i2) -> unbox (i1 + i2)
+        | (:? string as s1), (:? string as s2) -> unbox (s1 + s2)
+        | _ -> v1
 
     Array.iter
         (function
         | Some (k, v) ->
-            match resultDict.GetValue(k) with
+            let index = findSlotForInsert k
+
+            if index.IsSome then
+                newTable.[index.Value] <- Some(k, v)
+                newSize <- newSize + 1
+        | None -> ())
+        this.Table
+
+    Array.iter
+        (function
+        | Some (k, v) ->
+            match this.GetValue(k) with
             | Some existingValue ->
-                let newValue = mergeFunc existingValue v
-                resultDict.Add(k, newValue) |> ignore
+                let mergedValue = mergeFunc existingValue v
+                let index = findSlotForInsert k
+
+                if index.IsSome then
+                    newTable.[index.Value] <- Some(k, mergedValue)
             | None ->
-                resultDict.Add(k, v) |> ignore
+                let index = findSlotForInsert k
+
+                if index.IsSome then
+                    newTable.[index.Value] <- Some(k, v)
+                    newSize <- newSize + 1
         | None -> ())
         other.Table
-    resultDict
+
+    OpenAddressHashMap<'Key, 'Value>(newCapacity, newTable, newSize)
+
 ```
 
 ## Тестирование
