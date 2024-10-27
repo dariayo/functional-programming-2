@@ -7,10 +7,6 @@ open System.IO
 
 [<TestFixture>]
 type OpenAddressHashMapPropertyTests() =
-    let rec fillDict (dict: OpenAddressHashMap<int, int>) (values: int list) =
-        match values with
-        | [] -> dict
-        | head :: tail -> fillDict (dict.Add(head, head)) tail
 
     let equalDicts (dict1: OpenAddressHashMap<int, int>) (dict2: OpenAddressHashMap<int, int>) =
         let allKeys1 =
@@ -30,18 +26,17 @@ type OpenAddressHashMapPropertyTests() =
         else
             List.forall (fun key -> dict1.GetValue(key) = dict2.GetValue(key)) allKeys1
 
-
     let genDict =
-        gen {
-            let! keyValuePairs = Arb.generate<list<int * int>>
+        Gen.sized (fun size ->
+            gen {
+                let! keyValuePairs = Gen.listOfLength size (Arb.generate<int * int>)
+                let dict = OpenAddressHashMap<int, int>.CreateEmpty (size * 2)
 
-            let dict = OpenAddressHashMap<int, int>.CreateEmpty (List.length keyValuePairs * 2)
+                let filledDict =
+                    List.fold (fun (acc: OpenAddressHashMap<int, int>) (k, v) -> acc.Add(k, v)) dict keyValuePairs
 
-            let filledDict =
-                List.fold (fun (acc: OpenAddressHashMap<int, int>) (k, v) -> acc.Add(k, v)) dict keyValuePairs
-
-            return filledDict
-        }
+                return filledDict
+            })
 
     let dictArb = Arb.fromGen genDict
 
@@ -85,21 +80,20 @@ type OpenAddressHashMapPropertyTests() =
 
     [<Test>]
     member this.``Merge is associative``() =
-        let prop (values1: int list, values2: int list, values3: int list) =
-            let dict1 = OpenAddressHashMap<int, int>.CreateEmpty (100)
-            let dict2 = OpenAddressHashMap<int, int>.CreateEmpty (100)
-            let dict3 = OpenAddressHashMap<int, int>.CreateEmpty (100)
-
-            let filledDict1 = fillDict dict1 values1
-            let filledDict2 = fillDict dict2 values2
-            let filledDict3 = fillDict dict3 values3
-
-            let mergedLeft = filledDict1.Merge(filledDict2).Merge(filledDict3)
-            let mergedRight = filledDict1.Merge(filledDict2.Merge(filledDict3))
-
+        let prop
+            (
+                dict1: OpenAddressHashMap<int, int>,
+                dict2: OpenAddressHashMap<int, int>,
+                dict3: OpenAddressHashMap<int, int>
+            ) =
+            let mergedLeft = dict1.Merge(dict2).Merge(dict3)
+            let mergedRight = dict1.Merge(dict2.Merge(dict3))
             equalDicts mergedLeft mergedRight
 
-        Check.QuickThrowOnFailure prop
+        let tripleArb = Arb.fromGen (Gen.zip3 genDict genDict genDict)
+
+        Prop.forAll tripleArb prop
+        |> Check.QuickThrowOnFailure
 
     [<OneTimeSetUp>]
     member this.SetUp() =
