@@ -8,17 +8,17 @@ type OpenAddressHashMapTests() =
 
     [<Test>]
     member this.``Add and GetValue should return correct values``() =
-        let dict = createEmpty (5)
+        let dict = createEmpty 5
         let dict = add 1 "one" dict
         let dict = add 2 "two" dict
 
         Assert.AreEqual(Some "one", getValue 1 dict)
-        Assert.AreEqual(Some "two",  getValue 2 dict)
-        Assert.AreEqual(None,  getValue 3 dict)
+        Assert.AreEqual(Some "two", getValue 2 dict)
+        Assert.AreEqual(None, getValue 3 dict)
 
     [<Test>]
     member this.``Remove should delete element and GetValue should return None``() =
-        let dict = createEmpty (5)
+        let dict = createEmpty 5
         let dict = add 1 "one" dict
         let dict = add 2 "two" dict
         let dict = remove 1 dict
@@ -28,7 +28,7 @@ type OpenAddressHashMapTests() =
 
     [<Test>]
     member this.``Merge should combine two dictionaries``() =
-        let dict1 = createEmpty 5 
+        let dict1 = createEmpty 5
         let dict1 = add 1 "one" dict1
         let dict1 = add 2 "two" dict1
 
@@ -44,11 +44,11 @@ type OpenAddressHashMapTests() =
 
     [<Test>]
     member this.``Merge with empty dictionary should return original dictionary``() =
-        let dict1 = createEmpty 5 
+        let dict1 = createEmpty 5
         let dict1 = add 1 "one" dict1
         let dict1 = add 2 "two" dict1
 
-        let emptyDict= createEmpty 0
+        let emptyDict = createEmpty 0
 
         let result = merge dict1 emptyDict
 
@@ -58,7 +58,7 @@ type OpenAddressHashMapTests() =
 
     [<Test>]
     member this.``Filter should return dictionary with only matching elements``() =
-        let dict = createEmpty 5 
+        let dict = createEmpty 5
         let dict = add 1 "one" dict
         let dict = add 2 "two" dict
         let dict = add 3 "three" dict
@@ -71,7 +71,7 @@ type OpenAddressHashMapTests() =
 
     [<Test>]
     member this.``Map should transform all elements``() =
-        let dict = createEmpty 5 
+        let dict = createEmpty 5
         let dict = add 1 "one" dict
         let dict = add 2 "two" dict
         let dict = add 3 "three" dict
@@ -84,7 +84,7 @@ type OpenAddressHashMapTests() =
 
     [<Test>]
     member this.``FoldL should correctly accumulate state``() =
-        let dict = createEmpty 5 
+        let dict = createEmpty 5
         let dict = add 1 "one" dict
         let dict = add 2 "two" dict
         let dict = add 3 "three" dict
@@ -94,7 +94,7 @@ type OpenAddressHashMapTests() =
 
     [<Test>]
     member this.``FoldR should correctly accumulate state``() =
-        let dict = createEmpty 5 
+        let dict = createEmpty 5
         let dict = add 1 "one" dict
         let dict = add 2 "two" dict
         let dict = add 3 "three" dict

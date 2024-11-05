@@ -7,7 +7,7 @@ let main argv =
 
     let hashMap = add 1 "one" hashMap
     let hashMap = add 2 "two" hashMap
-    let hashMap =  add 3 "three" hashMap
+    let hashMap = add 3 "three" hashMap
 
     match getValue 1 hashMap with
     | Some value -> printfn "Key 1: %s" value
@@ -23,7 +23,7 @@ let main argv =
     | Some value -> printfn "Key 2: %s" value
     | None -> printfn "Key 2 not found (as expected after removal)"
 
-    let otherDict = createEmpty 5 
+    let otherDict = createEmpty 5
     let otherDict = add 3 "three" otherDict
     let otherDict = add 4 "four" otherDict
 
@@ -55,7 +55,7 @@ let main argv =
         | Some value -> printfn "Key %d: %s" k value
         | None -> ()
 
-    let sumKeys =  foldL (fun acc (k, _) -> acc + k) 0 otherDict
+    let sumKeys = foldL (fun acc (k, _) -> acc + k) 0 otherDict
     printfn "Sum of keys in merged dictionary: %d" sumKeys
 
     let concatValues = foldR (fun (k, v) acc -> acc + " " + v) "" mergedDict

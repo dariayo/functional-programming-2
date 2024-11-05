@@ -12,19 +12,18 @@ type OpenAddressHashMapPropertyTests() =
         if dict1.Size <> dict2.Size then
             false
         else
-            let rec compareSlots index =
-                if index >= dict1.Capacity then
-                    true 
-                else
-                    match dict1.Table.[index] with
-                    | Some (k, v) ->
-                        match getValue k dict2 with
-                        | Some v2 when v = v2 -> compareSlots (index + 1) 
-                        | _ -> false 
-                    | None -> compareSlots (index + 1) 
+            let compareOccupiedSlots () =
+                Array.forall
+                    (fun el ->
+                        match el with
+                        | Some (k, v) ->
+                            match getValue k dict2 with
+                            | Some v2 when v = v2 -> true
+                            | _ -> false
+                        | None -> true)
+                    dict1.Table
 
-            compareSlots 0
-
+            compareOccupiedSlots ()
 
     let genDict =
         Gen.sized (fun size ->
@@ -53,7 +52,7 @@ type OpenAddressHashMapPropertyTests() =
     [<Test>]
     member this.``Check insert``() =
         let prop (values: int list) =
-            let dict = createEmpty (List.length values * 2) 
+            let dict = createEmpty (List.length values * 2)
             let mutable currentDict = dict
 
             List.forall
@@ -86,8 +85,8 @@ type OpenAddressHashMapPropertyTests() =
                 dict2: OpenAddressHashMap<int, int>,
                 dict3: OpenAddressHashMap<int, int>
             ) =
-            let mergedLeft = merge (merge dict1 dict2 ) dict3
-            let mergedRight = merge dict1 (merge dict2 dict3) 
+            let mergedLeft = merge (merge dict1 dict2) dict3
+            let mergedRight = merge dict1 (merge dict2 dict3)
             equalDicts mergedLeft mergedRight
 
         let tripleArb = Arb.fromGen (Gen.zip3 genDict genDict genDict)
