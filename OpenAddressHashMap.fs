@@ -1,157 +1,168 @@
 module OpenAddressHashMap
 
-type OpenAddressHashMap<'Key, 'Value when 'Key: comparison>
-    (
-        capacity: int,
-        table: ('Key * 'Value) option array,
-        size: int
-    ) =
-    let hash (key: 'Key) : int =
-        (hash key) % capacity
-        |> (fun x -> if x < 0 then x + capacity else x)
+type OpenAddressHashMap<'Key, 'Value when 'Key: comparison> =
+    { Capacity: int
+      Table: ('Key * 'Value) option array
+      Size: int }
 
-    let rec findSlot (key: 'Key) index probeCount =
-        if probeCount >= capacity then
-            None
-        else
-            match table.[index] with
-            | Some (k, _) when k = key -> Some index
-            | None -> Some index
-            | _ -> findSlot key ((index + 1) % capacity) (probeCount + 1)
+let hash (capacity: int) (key: 'Key) : int =
+    (hash key) % capacity
+    |> (fun x -> if x < 0 then x + capacity else x)
 
-    let findSlotForInsert (key: 'Key) = findSlot key (hash key) 0
+let rec findSlot
+    (key: 'Key)
+    (capacity: int)
+    (table: ('Key * 'Value) option array)
+    (index: int)
+    (probeCount: int)
+    : int option =
+    if probeCount >= capacity then
+        None
+    else
+        match table.[index] with
+        | Some (k, _) when k = key -> Some index
+        | None -> Some index
+        | _ -> findSlot key capacity table ((index + 1) % capacity) (probeCount + 1)
 
-    let updateTable (table: ('Key * 'Value) option array) index key value =
-        let newTable = Array.copy table
-        newTable.[index] <- Some(key, value)
-        newTable
+let rec add (key: 'Key) (value: 'Value) (map: OpenAddressHashMap<'Key, 'Value>) : OpenAddressHashMap<'Key, 'Value> =
+    if float map.Size / float map.Capacity = 1 then
+        let newCapacity = map.Capacity * 2
+        let newTable = Array.create newCapacity None
 
-    member this.Add(key: 'Key, value: 'Value) =
-        if float size / float capacity = 1 then
-            let newCapacity = capacity * 2
-            let newTable = Array.create newCapacity None
-            let newMap = OpenAddressHashMap<'Key, 'Value>(newCapacity, newTable, size)
-            newMap.Add(key, value)
-        else
-            match findSlotForInsert key with
-            | Some index ->
-                let updatedTable = updateTable table index key value
-                OpenAddressHashMap<'Key, 'Value>(capacity, updatedTable, size + 1)
-            | None -> this
+        let newMap =
+            { Capacity = newCapacity
+              Table = newTable
+              Size = map.Size }
 
-    member this.Remove(key: 'Key) =
-        match findSlot key (hash key) 0 with
+        add key value newMap
+    else
+        match findSlot key map.Capacity map.Table (hash map.Capacity key) 0 with
         | Some index ->
-            let newTable = Array.copy table
-            newTable.[index] <- None
-            OpenAddressHashMap<'Key, 'Value>(capacity, newTable, size - 1)
-        | None -> this
+            let newTable = Array.copy map.Table
+            newTable.[index] <- Some(key, value)
 
-    member this.GetValue(key: 'Key) =
-        match findSlot key (hash key) 0 with
-        | Some index ->
-            match table.[index] with
-            | Some (_, v) -> Some v
-            | None -> None
+            { map with
+                Table = newTable
+                Size = map.Size + 1 }
+        | None -> map
+
+let remove (key: 'Key) (map: OpenAddressHashMap<'Key, 'Value>) : OpenAddressHashMap<'Key, 'Value> =
+    match findSlot key map.Capacity map.Table (hash map.Capacity key) 0 with
+    | Some index ->
+        let newTable = Array.copy map.Table
+        newTable.[index] <- None
+
+        { map with
+            Table = newTable
+            Size = map.Size - 1 }
+    | None -> map
+
+let getValue (key: 'Key) (map: OpenAddressHashMap<'Key, 'Value>) : 'Value option =
+    match findSlot key map.Capacity map.Table (hash map.Capacity key) 0 with
+    | Some index ->
+        match map.Table.[index] with
+        | Some (_, v) -> Some v
         | None -> None
+    | None -> None
 
-    member this.Filter(predicate: ('Key * 'Value) -> bool) =
-        let filteredItems =
-            Array.fold
-                (fun acc el ->
-                    match el with
-                    | Some (k, v) when predicate (k, v) -> (k, v) :: acc
-                    | _ -> acc)
-                []
-                table
+let filter
+    (predicate: ('Key * 'Value) -> bool)
+    (map: OpenAddressHashMap<'Key, 'Value>)
+    : OpenAddressHashMap<'Key, 'Value> =
+    let filteredItems =
+        Array.fold
+            (fun acc el ->
+                match el with
+                | Some (k, v) when predicate (k, v) -> (k, v) :: acc
+                | _ -> acc)
+            []
+            map.Table
 
-        let newDict =
-            OpenAddressHashMap<'Key, 'Value>(capacity, Array.create capacity None, 0)
+    let newDict =
+        { Capacity = map.Capacity
+          Table = Array.create map.Capacity None
+          Size = 0 }
 
-        List.fold (fun (dict: OpenAddressHashMap<'Key, 'Value>) (k, v) -> dict.Add(k, v)) newDict filteredItems
+    List.fold (fun acc (k, v) -> add k v acc) newDict filteredItems
 
-    member this.Map(mapper: ('Key * 'Value) -> ('Key * 'Value)) =
-        let newTable = Array.create capacity None
-        let mutable newSize = 0
+let map
+    (mapper: ('Key * 'Value) -> ('Key * 'Value))
+    (map: OpenAddressHashMap<'Key, 'Value>)
+    : OpenAddressHashMap<'Key, 'Value> =
+    let newTable = Array.create map.Capacity None
 
-        Array.iter
-            (function
-            | Some (k, v) ->
-                let (newK, newV) = mapper (k, v)
-                let index = findSlotForInsert newK
+    let updatedTable =
+        Array.fold
+            (fun (table: ('Key * 'Value) option array) el ->
+                match el with
+                | Some (k, v) ->
+                    let (newK, newV) = mapper (k, v)
 
-                if index.IsSome then
-                    newTable.[index.Value] <- Some(newK, newV)
-                    newSize <- newSize + 1
-            | None -> ())
-            table
+                    match findSlot newK map.Capacity table (hash map.Capacity newK) 0 with
+                    | Some index ->
+                        table.[index] <- Some(newK, newV)
+                        table
+                    | None -> table
+                | None -> table)
+            newTable
+            map.Table
 
-        OpenAddressHashMap<'Key, 'Value>(capacity, newTable, newSize)
+    { map with Table = updatedTable }
 
-
-    member this.FoldL (folder: 'State -> ('Key * 'Value) -> 'State) (state: 'State) =
-        let folderFn acc el =
+let foldL
+    (folder: 'State -> ('Key * 'Value) -> 'State)
+    (state: 'State)
+    (map: OpenAddressHashMap<'Key, 'Value>)
+    : 'State =
+    Array.fold
+        (fun acc el ->
             match el with
             | Some (k, v) -> folder acc (k, v)
-            | None -> acc
+            | None -> acc)
+        state
+        map.Table
 
-        Array.fold folderFn state table
-
-    member this.FoldR (folder: ('Key * 'Value) -> 'State -> 'State) (state: 'State) =
-        let folderFn el acc =
+let foldR
+    (folder: ('Key * 'Value) -> 'State -> 'State)
+    (state: 'State)
+    (map: OpenAddressHashMap<'Key, 'Value>)
+    : 'State =
+    Array.foldBack
+        (fun el acc ->
             match el with
             | Some (k, v) -> folder (k, v) acc
-            | None -> acc
+            | None -> acc)
+        map.Table
+        state
 
-        Array.foldBack folderFn table state
+let merge
+    (dict1: OpenAddressHashMap<'Key, 'Value>)
+    (dict2: OpenAddressHashMap<'Key, 'Value>)
+    : OpenAddressHashMap<'Key, 'Value> =
+    let newCapacity = max dict1.Capacity dict2.Capacity
+    let newTable = Array.create newCapacity None
 
-    member this.Merge(other: OpenAddressHashMap<'Key, 'Value>) =
-        let newCapacity = max this.Capacity other.Capacity
-        let newTable = Array.create newCapacity None
-        let mutable newSize = 0
+    let addAll (table: ('Key * 'Value) option array) (map: OpenAddressHashMap<'Key, 'Value>) =
+        Array.fold
+            (fun updatedTable el ->
+                match el with
+                | Some (k, v) ->
+                    match findSlot k newCapacity updatedTable (hash newCapacity k) 0 with
+                    | Some index ->
+                        updatedTable.[index] <- Some(k, v)
+                        updatedTable
+                    | None -> updatedTable
+                | None -> updatedTable)
+            table
+            map.Table
 
-        let mergeFunc v1 v2 =
-            match box v1, box v2 with
-            | (:? int as i1), (:? int as i2) -> unbox (i1 + i2)
-            | (:? string as s1), (:? string as s2) -> unbox (s1 + s2)
-            | _ -> v1
+    let mergedTable = addAll (addAll newTable dict1) dict2
 
-        Array.iter
-            (function
-            | Some (k, v) ->
-                let index = findSlotForInsert k
+    { Capacity = newCapacity
+      Table = mergedTable
+      Size = dict1.Size + dict2.Size }
 
-                if index.IsSome then
-                    newTable.[index.Value] <- Some(k, v)
-                    newSize <- newSize + 1
-            | None -> ())
-            this.Table
-
-        Array.iter
-            (function
-            | Some (k, v) ->
-                match this.GetValue(k) with
-                | Some existingValue ->
-                    let mergedValue = mergeFunc existingValue v
-                    let index = findSlotForInsert k
-
-                    if index.IsSome then
-                        newTable.[index.Value] <- Some(k, mergedValue)
-                | None ->
-                    let index = findSlotForInsert k
-
-                    if index.IsSome then
-                        newTable.[index.Value] <- Some(k, v)
-                        newSize <- newSize + 1
-            | None -> ())
-            other.Table
-
-        OpenAddressHashMap<'Key, 'Value>(newCapacity, newTable, newSize)
-
-
-    static member CreateEmpty capacity =
-        OpenAddressHashMap<'Key, 'Value>(capacity, Array.create capacity None, 0)
-
-    member this.Capacity = capacity
-    member this.Size = size
-    member this.Table = table
+let createEmpty (capacity: int) : OpenAddressHashMap<'Key, 'Value> =
+    { Capacity = capacity
+      Table = Array.create capacity None
+      Size = 0 }

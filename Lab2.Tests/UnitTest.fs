@@ -8,108 +8,96 @@ type OpenAddressHashMapTests() =
 
     [<Test>]
     member this.``Add and GetValue should return correct values``() =
-        let dict = OpenAddressHashMap<int, string>.CreateEmpty (5)
-        let dict = dict.Add(1, "one").Add(2, "two")
+        let dict = createEmpty (5)
+        let dict = add 1 "one" dict
+        let dict = add 2 "two" dict
 
-        Assert.AreEqual(Some "one", dict.GetValue(1))
-        Assert.AreEqual(Some "two", dict.GetValue(2))
-        Assert.AreEqual(None, dict.GetValue(3))
+        Assert.AreEqual(Some "one", getValue 1 dict)
+        Assert.AreEqual(Some "two",  getValue 2 dict)
+        Assert.AreEqual(None,  getValue 3 dict)
 
     [<Test>]
     member this.``Remove should delete element and GetValue should return None``() =
-        let dict = OpenAddressHashMap<int, string>.CreateEmpty (5)
-        let dict = dict.Add(1, "one").Add(2, "two")
-        let dict = dict.Remove(1)
+        let dict = createEmpty (5)
+        let dict = add 1 "one" dict
+        let dict = add 2 "two" dict
+        let dict = remove 1 dict
 
-        Assert.AreEqual(None, dict.GetValue(1))
-        Assert.AreEqual(Some "two", dict.GetValue(2))
+        Assert.AreEqual(None, getValue 1 dict)
+        Assert.AreEqual(Some "two", getValue 2 dict)
 
     [<Test>]
     member this.``Merge should combine two dictionaries``() =
-        let dict1 =
-            OpenAddressHashMap<int, string>
-                .CreateEmpty(5)
-                .Add(1, "one")
-                .Add(2, "two")
+        let dict1 = createEmpty 5 
+        let dict1 = add 1 "one" dict1
+        let dict1 = add 2 "two" dict1
 
-        let dict2 =
-            OpenAddressHashMap<int, string>
-                .CreateEmpty(5)
-                .Add(2, "two")
-                .Add(3, "three")
+        let dict2 = createEmpty 5
+        let dict2 = add 2 "two" dict2
+        let dict2 = add 3 "three" dict2
 
-        let merged = dict1.Merge(dict2)
+        let merged = merge dict1 dict2
 
-        Assert.AreEqual(Some "one", merged.GetValue(1))
-        Assert.AreEqual(Some "twotwo", merged.GetValue(2))
-        Assert.AreEqual(Some "three", merged.GetValue(3))
+        Assert.AreEqual(Some "one", getValue 1 merged)
+        Assert.AreEqual(Some "two", getValue 2 merged)
+        Assert.AreEqual(Some "three", getValue 3 merged)
 
     [<Test>]
     member this.``Merge with empty dictionary should return original dictionary``() =
-        let dict1 =
-            OpenAddressHashMap<int, string>
-                .CreateEmpty(5)
-                .Add(1, "one")
-                .Add(2, "two")
+        let dict1 = createEmpty 5 
+        let dict1 = add 1 "one" dict1
+        let dict1 = add 2 "two" dict1
 
-        let emptyDict = OpenAddressHashMap<int, string>.CreateEmpty (0)
+        let emptyDict= createEmpty 0
 
-        let result = dict1.Merge(emptyDict)
+        let result = merge dict1 emptyDict
 
-        Assert.AreEqual(dict1.GetValue(1), result.GetValue(1))
-        Assert.AreEqual(dict1.GetValue(2), result.GetValue(2))
+        Assert.AreEqual(getValue 1 dict1, getValue 1 result)
+        Assert.AreEqual(getValue 2 dict1, getValue 2 result)
         Assert.AreEqual(dict1.Size, result.Size)
 
     [<Test>]
     member this.``Filter should return dictionary with only matching elements``() =
-        let dict =
-            OpenAddressHashMap<int, string>
-                .CreateEmpty(5)
-                .Add(1, "one")
-                .Add(2, "two")
-                .Add(3, "three")
+        let dict = createEmpty 5 
+        let dict = add 1 "one" dict
+        let dict = add 2 "two" dict
+        let dict = add 3 "three" dict
 
-        let filtered = dict.Filter(fun (k, _) -> k % 2 = 0)
+        let filtered = filter (fun (k, _) -> k % 2 = 0) dict
 
-        Assert.AreEqual(None, filtered.GetValue(1))
-        Assert.AreEqual(Some "two", filtered.GetValue(2))
-        Assert.AreEqual(None, filtered.GetValue(3))
+        Assert.AreEqual(None, getValue 1 filtered)
+        Assert.AreEqual(Some "two", getValue 2 filtered)
+        Assert.AreEqual(None, getValue 3 filtered)
 
     [<Test>]
     member this.``Map should transform all elements``() =
-        let dict =
-            OpenAddressHashMap<int, string>
-                .CreateEmpty(5)
-                .Add(1, "one")
-                .Add(2, "two")
-                .Add(3, "three")
+        let dict = createEmpty 5 
+        let dict = add 1 "one" dict
+        let dict = add 2 "two" dict
+        let dict = add 3 "three" dict
 
-        let mapped = dict.Map(fun (k, v) -> (k, v.ToUpper()))
+        let mapped = map (fun (k, (v: string)) -> (k, v.ToUpper())) dict
 
-        Assert.AreEqual(Some "ONE", mapped.GetValue(1))
-        Assert.AreEqual(Some "TWO", mapped.GetValue(2))
-        Assert.AreEqual(Some "THREE", mapped.GetValue(3))
+        Assert.AreEqual(Some "ONE", getValue 1 mapped)
+        Assert.AreEqual(Some "TWO", getValue 2 mapped)
+        Assert.AreEqual(Some "THREE", getValue 3 mapped)
 
     [<Test>]
     member this.``FoldL should correctly accumulate state``() =
-        let dict =
-            OpenAddressHashMap<int, string>
-                .CreateEmpty(5)
-                .Add(1, "one")
-                .Add(2, "two")
-                .Add(3, "three")
+        let dict = createEmpty 5 
+        let dict = add 1 "one" dict
+        let dict = add 2 "two" dict
+        let dict = add 3 "three" dict
 
-        let sumKeys = dict.FoldL (fun acc (k, _) -> acc + k) 0
+        let sumKeys = foldL (fun acc (k, _) -> acc + k) 0 dict
         Assert.AreEqual(6, sumKeys)
 
     [<Test>]
     member this.``FoldR should correctly accumulate state``() =
-        let dict =
-            OpenAddressHashMap<int, string>
-                .CreateEmpty(5)
-                .Add(1, "one")
-                .Add(2, "two")
-                .Add(3, "three")
+        let dict = createEmpty 5 
+        let dict = add 1 "one" dict
+        let dict = add 2 "two" dict
+        let dict = add 3 "three" dict
 
-        let concatValues = dict.FoldR (fun (_, v) acc -> acc + " " + v) ""
+        let concatValues = foldR (fun (_, v) acc -> acc + " " + v) "" dict
         Assert.AreEqual("three two one", concatValues.Trim())
