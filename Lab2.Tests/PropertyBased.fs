@@ -12,7 +12,7 @@ type OpenAddressHashMapPropertyTests() =
         if dict1.Size <> dict2.Size then
             false
         else
-            let compareOccupiedSlots () =
+            let compareOccupiedSlots =
                 Array.forall
                     (fun el ->
                         match el with
@@ -23,7 +23,7 @@ type OpenAddressHashMapPropertyTests() =
                         | None -> true)
                     dict1.Table
 
-            compareOccupiedSlots ()
+            compareOccupiedSlots 
 
     let genDict =
         Gen.sized (fun size ->
